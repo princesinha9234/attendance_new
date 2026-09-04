@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "Attendance System",
+    "slug": "attendance-system",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563EB"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.attendance.system",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses camera for QR code scanning and face verification",
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication",
+        "NSLocationWhenInUseUsageDescription": "This app uses location for geofencing attendance verification",
+        "NSPhotoLibraryUsageDescription": "This app needs photo library access for profile pictures"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563EB"
+      },
+      "package": "com.attendance.system",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-barcode-scanner",
+      "expo-camera",
+      "expo-location",
+      "expo-image-picker",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

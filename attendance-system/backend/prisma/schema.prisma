@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  PLATFORM_OWNER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum AttendanceMethod {
+  QR_FACE
+  MANUAL
+  QR_ONLY
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  role          UserRole @default(STUDENT)
+  fullName      String
+  phone         String?
+  avatarUrl     String?
+  faceDescriptor String?  // JSON string of face descriptor for face recognition
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Student specific
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+
+  // Relations
+  attendanceRecords AttendanceRecord[]
+  createdSessions   ClassSession[] @relation("SessionCreator")
+  ownedInstitutions Institution[]  @relation("InstitutionOwner")
+  classTeacher      Class[]        @relation("ClassTeacher")
+  faceEnrollment    FaceEnrollment?
+}
+
+model StudentProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId     String   @unique // College roll number
+  branch        String   // e.g., "CSE", "ECE", "MECH"
+  classId       String   // e.g., "CSE-3A", "ECE-2B"
+  semester      Int
+  section       String?
+  enrollmentYear Int
+  parentPhone   String?
+  address       String?
+
+  attendanceRecords AttendanceRecord[]
+  class           Class?   @relation(fields: [classId], references: [id])
+}
+
+model TeacherProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId    String   @unique
+  department    String
+  designation   String   // e.g., "Professor", "Assistant Professor"
+  subjects      String[] // Array of subject codes/names
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+
+  createdSessions ClassSession[] @relation("SessionTeacher")
+  subjectMappings SubjectClassMapping[]
+}
+
+model Institution {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique // Short code for institution
+  address     String
+  city        String
+  state       String
+  country     String   @default("India")
+  ownerId     String
+  owner       User     @relation("InstitutionOwner", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teachers     TeacherProfile[]
+  classes      Class[]
+  subjects     Subject[]
+}
+
+model Class {
+  id            String   @id @default(uuid())
+  name          String   // e.g., "CSE-3A"
+  branch        String   // e.g., "CSE"
+  semester      Int
+  section       String
+  academicYear  String   // e.g., "2024-2025"
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  classTeacherId String?
+  classTeacher  User?    @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  students       StudentProfile[]
+  sessions       ClassSession[]
+  subjectMappings SubjectClassMapping[]
+}
+
+model Subject {
+  id            String   @id @default(uuid())
+  code          String   // e.g., "CS301"
+  name          String   // e.g., "Database Management Systems"
+  credits       Int      @default(3)
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  classMappings SubjectClassMapping[]
+  sessions      ClassSession[]
+}
+
+model SubjectClassMapping {
+  id        String @id @default(uuid())
+  classId   String
+  class     Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId String
+  teacher   TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  sessions  ClassSession[]
+
+  @@unique([classId, subjectId])
+}
+
+model ClassSession {
+  id              String   @id @default(uuid())
+  subjectClassMappingId String
+  subjectClassMapping SubjectClassMapping @relation(fields: [subjectClassMappingId], references: [id], onDelete: Cascade)
+  teacherId       String
+  teacher         TeacherProfile @relation("SessionTeacher", fields: [teacherId], references: [id])
+  createdById     String?
+  createdBy       User?    @relation("SessionCreator", fields: [createdById], references: [id])
+  classId         String?
+  class           Class?   @relation(fields: [classId], references: [id])
+  subjectId       String?
+  subject         Subject? @relation(fields: [subjectId], references: [id])
+  scheduledStart  DateTime
+  scheduledEnd    DateTime
+  actualStart     DateTime?
+  actualEnd       DateTime?
+  status          String   @default("SCHEDULED") // SCHEDULED, ONGOING, COMPLETED, CANCELLED
+  qrCodeData      String?  @unique // Unique token for QR code
+  qrExpiresAt     DateTime?
+  locationLat     Float?
+  locationLng     Float?
+  allowedRadius   Float?   // In meters - geofencing radius
+  requireFaceVerify Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  attendanceRecords AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id              String   @id @default(uuid())
+  studentId       String
+  student         StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sessionId       String
+  session         ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  markedById      String
+  markedBy        User     @relation(fields: [markedById], references: [id])
+  status          AttendanceStatus @default(PRESENT)
+  method          AttendanceMethod @default(QR_FACE)
+  markedAt        DateTime @default(now())
+  latitude        Float?
+  longitude       Float?
+  faceVerified    Boolean  @default(false)
+  faceMatchScore  Float?
+  deviceInfo      String?
+  notes           String?
+
+  @@unique([studentId, sessionId])
+}
+
+model FaceEnrollment {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  descriptors   String   // JSON array of face descriptors
+  enrolledAt    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  isActive      Boolean  @default(true)
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String?
+  oldData     String?
+  newData     String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+}
