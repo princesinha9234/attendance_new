@@ -28,8 +28,10 @@ export default function StudentDashboardScreen() {
         setUpcomingSessions(sessionsRes.data.sessions);
       }
       if (attendanceRes.data) {
-        setRecentAttendance(attendanceRes.data);
-        const records = attendanceRes.data;
+        const records = Array.isArray(attendanceRes.data)
+          ? attendanceRes.data
+          : attendanceRes.data.data;
+        setRecentAttendance(records);
         setStats({
           present: records.filter((r: any) => r.status === 'PRESENT').length,
           absent: records.filter((r: any) => r.status === 'ABSENT').length,
@@ -81,7 +83,7 @@ export default function StudentDashboardScreen() {
               <Text style={styles.userName}>{user?.fullName}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/student/profile')}>
+          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/student/profile' as any)}>
             <Ionicons name="settings" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -100,7 +102,7 @@ export default function StudentDashboardScreen() {
           <View style={styles.nextSessionSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Next Session</Text>
-              <TouchableOpacity onPress={() => router.push('/student/scan-qr')}>
+              <TouchableOpacity onPress={() => router.push('/student/scan-qr' as any)}>
                 <Text style={styles.seeAll}>Scan QR</Text>
               </TouchableOpacity>
             </View>
@@ -120,7 +122,7 @@ export default function StudentDashboardScreen() {
                 </View>
               </View>
               <CardFooter>
-                <TouchableOpacity style={styles.scanButton} onPress={() => router.push('/student/scan-qr')}>
+                <TouchableOpacity style={styles.scanButton} onPress={() => router.push('/student/scan-qr' as any)}>
                   <Ionicons name="qr-code" size={20} color="#FFFFFF" />
                   <Text style={styles.scanButtonText}>Scan QR to Attend</Text>
                 </TouchableOpacity>
@@ -136,7 +138,7 @@ export default function StudentDashboardScreen() {
           {upcomingSessions.length > 1 ? (
             <View style={styles.sessionsList}>
               {upcomingSessions.slice(1, 4).map((session: any) => (
-                <SessionCard key={session.id} session={session} onPress={() => router.push('/student/scan-qr')} />
+                <SessionCard key={session.id} session={session} onPress={() => router.push('/student/scan-qr' as any)} />
               ))}
             </View>
           ) : (
@@ -151,7 +153,7 @@ export default function StudentDashboardScreen() {
         <View style={styles.recentSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Attendance</Text>
-            <TouchableOpacity onPress={() => router.push('/student/attendance-history')}>
+            <TouchableOpacity onPress={() => router.push('/student/attendance-history' as any)}>
               <Text style={styles.seeAll}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -178,7 +180,7 @@ interface StatCardProps {
   label: string;
   value: number;
   color: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
 const StatCard = ({ label, value, color, icon }: StatCardProps) => (

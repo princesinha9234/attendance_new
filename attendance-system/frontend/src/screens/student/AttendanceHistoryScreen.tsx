@@ -12,7 +12,7 @@ interface StatCardProps {
   label: string;
   value: number;
   color: string;
-  icon: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
 }
 
 const StatCard = ({ label, value, color, icon }: StatCardProps) => (
@@ -60,12 +60,12 @@ const AttendanceRecordCard = ({ record }: AttendanceRecordCardProps) => {
       <View style={styles.recordDetails}>
         <DetailRow icon="person" label="Teacher" value={teacher} />
         <DetailRow icon="time" label="Date & Time" value={`${date} at ${time}`} />
-        <DetailRow icon={record.method === 'QR_FACE' ? 'scan-face' : record.method === 'MANUAL' ? 'create' : 'qr-code'} 
+        <DetailRow icon={record.method === 'QR_FACE' ? 'scan-circle' : record.method === 'MANUAL' ? 'create' : 'qr-code'} 
           label="Method" 
           value={record.method === 'QR_FACE' ? 'QR + Face' : record.method === 'MANUAL' ? 'Manual by Teacher' : 'QR Only'} 
         />
         {record.faceVerified && (
-          <DetailRow icon="checkmark-shield" label="Face Verified" value={`${Math.round((record.faceMatchScore || 1) * 100)}% match`} />
+          <DetailRow icon="shield-checkmark" label="Face Verified" value={`${Math.round((record.faceMatchScore || 1) * 100)}% match`} />
         )}
         {record.latitude && record.longitude && (
           <DetailRow icon="location" label="Location" value={`${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}`} />
@@ -76,7 +76,7 @@ const AttendanceRecordCard = ({ record }: AttendanceRecordCardProps) => {
 };
 
 interface DetailRowProps {
-  icon: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string;
 }
@@ -84,7 +84,7 @@ interface DetailRowProps {
 const DetailRow = ({ icon, label, value }: DetailRowProps) => (
   <View style={styles.detailRow}>
     <Ionicons name={icon} size={18} color="#94A3B8" style={{ width: 24 }} />
-    <View style={styles.detailContent} flex={1}>
+    <View style={styles.detailContent}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
     </View>
@@ -112,12 +112,13 @@ export default function AttendanceHistoryScreen() {
       });
 
       if (response.data) {
+        const attendanceRecords = response.data.data || [];
         if (append) {
-          setRecords(prev => [...prev, ...response.data!]);
+          setRecords(prev => [...prev, ...attendanceRecords]);
         } else {
-          setRecords(response.data);
+          setRecords(attendanceRecords);
         }
-        setHasMore(response.pagination?.page < response.pagination?.pages);
+        setHasMore(response.data.pagination?.page < response.data.pagination?.pages);
       }
     } catch (error) {
       console.error('Fetch attendance error:', error);
@@ -131,7 +132,7 @@ export default function AttendanceHistoryScreen() {
     try {
       const response = await api.getMyAttendance({ limit: 1000 });
       if (response.data) {
-        const data = response.data;
+        const data = response.data.data || [];
         setStats({
           present: data.filter((r: any) => r.status === 'PRESENT').length,
           absent: data.filter((r: any) => r.status === 'ABSENT').length,
@@ -172,8 +173,6 @@ export default function AttendanceHistoryScreen() {
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563EB']} />}
         contentContainerStyle={styles.scrollContent}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.1}
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -242,9 +241,6 @@ export default function AttendanceHistoryScreen() {
       </ScrollView>
     </View>
   );
-}
-
-}
 }
 
 const styles = StyleSheet.create({

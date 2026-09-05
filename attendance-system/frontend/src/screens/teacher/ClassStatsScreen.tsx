@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
-import { Card, Badge, Loading, EmptyState } from '@/components';
+import { Card, Badge, Loading, EmptyState, Modal } from '@/components';
 import { formatDate, getAttendanceStatusColor } from '@/utils/format';
 
 export default function ClassStatsScreen() {
@@ -21,14 +21,15 @@ export default function ClassStatsScreen() {
     if (!user?.teacherProfile?.id) return;
     
     try {
-      // Get teacher's classes
-      const classesRes = await api.getClasses({ page: 1, limit: 50 });
-      const teacherClasses = classesRes.data?.filter((c: any) => 
+      const classesRes = await (api as any).getClasses({ page: 1, limit: 50 });
+      const resData = classesRes.data as any;
+      const classesList = Array.isArray(resData) ? resData : (resData?.classes || resData?.data || []);
+      
+      const teacherClasses = classesList.filter((c: any) => 
         c.classTeacherId === user.teacherProfile?.id || 
         c.subjectMappings?.some((m: any) => m.teacherId === user.teacherProfile?.id)
-      ) || [];
+      );
 
-      // Get stats for each class
       const statsPromises = teacherClasses.map(async (clazz: any) => {
         try {
           const response = await api.getClassAttendanceSummary(clazz.id);
@@ -122,9 +123,9 @@ export default function ClassStatsScreen() {
                       <View key={subjectStat.studentId} style={styles.subjectStat}>
                         <Text style={styles.subjectName}>{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.subject || 'Subject'}</Text>
                         <View style={styles.subjectBreakdown}>
-                          <Badge variant="success" size="xs">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.present || 0} P</Badge>
-                          <Badge variant="danger" size="xs">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.absent || 0} A</Badge>
-                          <Badge variant="warning" size="xs">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.late || 0} L</Badge>
+                          <Badge variant="success" size="sm">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.present || 0} P</Badge>
+                          <Badge variant="danger" size="sm">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.absent || 0} A</Badge>
+                          <Badge variant="warning" size="sm">{subjectStat.bySubject?.[Object.keys(subjectStat.bySubject)[0]]?.late || 0} L</Badge>
                         </View>
                       </View>
                     ))}

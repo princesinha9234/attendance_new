@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, Platform, Vibration } from 'react-native';
+import { View, Text, StyleSheet, Alert, Platform, Vibration, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { Camera, CameraType } from 'expo-camera';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
-import { Button } from '@/components/Button';
-import { Card, Loading } from '@/components';
+import { Button, Card, Loading } from '@/components';
 import { verifyFaceMatch, deserializeFaceDescriptor } from '@/utils/face';
 
 export default function FaceVerifyScreen() {
@@ -14,16 +13,25 @@ export default function FaceVerifyScreen() {
   const params = useLocalSearchParams<{ sessionId: string; sessionData?: string }>();
   const { user } = useAuth();
   
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, setPermission] = useState<{ granted: boolean } | null>(null);
   const [verified, setVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [instructions, setInstructions] = useState('Position your face in the frame');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<React.ElementRef<typeof Camera>>(null);
   const detectingRef = useRef(false);
   const sessionData = params.sessionData ? JSON.parse(params.sessionData) : null;
+
+  const requestPermission = async () => {
+    const result = await Camera.requestCameraPermissionsAsync();
+    setPermission(result);
+  };
+
+  useEffect(() => {
+    Camera.getCameraPermissionsAsync().then(setPermission);
+  }, []);
 
   useEffect(() => {
     if (permission?.granted) {
@@ -85,13 +93,8 @@ export default function FaceVerifyScreen() {
       }
 
       // Mark attendance
-      const { getCurrentLocation } = await import('@/hooks/useLocation');
-      const location = await getCurrentLocation();
-      
       const response = await api.markAttendance(params.sessionId, {
         faceDescriptor: descriptor,
-        latitude: location?.latitude,
-        longitude: location?.longitude,
         deviceInfo: Platform.OS,
       });
 
@@ -102,7 +105,7 @@ export default function FaceVerifyScreen() {
       Vibration.vibrate([100, 50, 100]);
 
       setTimeout(() => {
-        router.replace('/student/dashboard');
+        router.replace('/student/dashboard' as any);
       }, 1500);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Verification failed';
@@ -130,17 +133,17 @@ export default function FaceVerifyScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="scan-face" size={64} color="#94A3B8" />
+          <Ionicons name="camera" size={64} color="#94A3B8" />
           <Text style={styles.permissionTitle}>Camera Permission Required</Text>
           <Text style={styles.permissionText}>
             Camera access is needed for face verification during attendance.
           </Text>
-          <Button
-            title="Grant Permission"
-            variant="primary"
-            onPress={() => requestPermission()}
+          <TouchableOpacity
+            onPress={() => { void requestPermission(); }}
             style={{ marginTop: 20, width: 280 }}
-          />
+          >
+            <Text>Grant Permission</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -157,11 +160,10 @@ export default function FaceVerifyScreen() {
       </View>
 
       <View style={styles.cameraContainer}>
-        <CameraView
+        <Camera
           ref={cameraRef}
           style={styles.camera}
           type={CameraType.front}
-          videoStabilizationMode="auto"
         >
           <View style={styles.overlay}>
             <View style={[
@@ -180,7 +182,7 @@ export default function FaceVerifyScreen() {
               </View>
             )}
           </View>
-        </CameraView>
+        </Camera>
       </View>
 
       <View style={styles.bottomPanel}>
@@ -215,25 +217,34 @@ export default function FaceVerifyScreen() {
 
         {!verified && (
           <View style={styles.buttonContainer}>
-            <Button
-              title={verifying ? 'Verifying...' : 'Verify & Mark Present'}
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={verifying}
+            <TouchableOpacity
+              onPress={() => { void verifyAndMarkAttendance(); }}
               disabled={!faceDetected || verifying}
-              onPress={verifyAndMarkAttendance}
-            />
+              activeOpacity={0.8}
+            >
+              <Button
+                title={verifying ? 'Verifying...' : 'Verify & Mark Present'}
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={verifying}
+                disabled={!faceDetected || verifying}
+              />
+            </TouchableOpacity>
             
             {previewUri && (
-              <Button
-                title="Retake"
-                variant="outline"
-                size="md"
-                fullWidth
+              <TouchableOpacity
                 onPress={retake}
+                activeOpacity={0.8}
                 style={{ marginTop: 12 }}
-              />
+              >
+                <Button
+                  title="Retake"
+                  variant="outline"
+                  size="md"
+                  fullWidth
+                />
+              </TouchableOpacity>
             )}
           </View>
         )}

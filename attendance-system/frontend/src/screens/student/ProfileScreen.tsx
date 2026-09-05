@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, TextInputProps } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,19 @@ import { api } from '@/services/api';
 import { Button } from '@/components/Button';
 import { Card, Avatar, Input, Badge } from '@/components';
 import * as ImagePicker from 'expo-image-picker';
+
+const ProfileInput = Input as React.ComponentType<
+  React.ComponentProps<typeof Input> & {
+    value?: string;
+    onChangeText?: (value: string) => void;
+    placeholder?: string;
+    keyboardType?: TextInputProps['keyboardType'];
+    autoCapitalize?: TextInputProps['autoCapitalize'];
+    multiline?: TextInputProps['multiline'];
+    numberOfLines?: TextInputProps['numberOfLines'];
+    editable?: boolean;
+  }
+>;
 
 export default function StudentProfileScreen() {
   const router = useRouter();
@@ -35,7 +48,7 @@ export default function StudentProfileScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -67,7 +80,7 @@ export default function StudentProfileScreen() {
         });
       }
 
-      updateUser({ fullName: formData.fullName, phone: formData.phone, avatarUrl: avatarUri });
+      updateUser({ fullName: formData.fullName, phone: formData.phone, avatarUrl: avatarUri ?? undefined });
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
@@ -78,7 +91,7 @@ export default function StudentProfileScreen() {
   };
 
   const handleFaceEnroll = () => {
-    router.push('/face-enroll?mode=enroll');
+    router.push({ pathname: '/face-enroll', params: { mode: 'enroll' } });
   };
 
   const handleLogout = () => {
@@ -128,7 +141,7 @@ export default function StudentProfileScreen() {
           </View>
           
           <View style={styles.form}>
-            <Input
+            <ProfileInput
               label="Student ID"
               value={formData.studentId}
               onChangeText={v => updateField('studentId', v)}
@@ -136,7 +149,7 @@ export default function StudentProfileScreen() {
               leftIcon="id-card"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Full Name"
               value={formData.fullName}
               onChangeText={v => updateField('fullName', v)}
@@ -144,7 +157,7 @@ export default function StudentProfileScreen() {
               leftIcon="person"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Email"
               value={formData.email}
               onChangeText={v => updateField('email', v)}
@@ -154,7 +167,7 @@ export default function StudentProfileScreen() {
               leftIcon="mail"
               editable={false}
             />
-            <Input
+            <ProfileInput
               label="Phone"
               value={formData.phone}
               onChangeText={v => updateField('phone', v)}
@@ -163,7 +176,7 @@ export default function StudentProfileScreen() {
               leftIcon="call"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Branch"
               value={formData.branch}
               onChangeText={v => updateField('branch', v)}
@@ -171,7 +184,7 @@ export default function StudentProfileScreen() {
               leftIcon="school"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Class ID"
               value={formData.classId}
               onChangeText={v => updateField('classId', v)}
@@ -179,7 +192,7 @@ export default function StudentProfileScreen() {
               leftIcon="layers"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Semester"
               value={formData.semester}
               onChangeText={v => updateField('semester', v)}
@@ -188,7 +201,7 @@ export default function StudentProfileScreen() {
               leftIcon="numeric"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Section"
               value={formData.section}
               onChangeText={v => updateField('section', v)}
@@ -196,7 +209,7 @@ export default function StudentProfileScreen() {
               leftIcon="grid"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Enrollment Year"
               value={formData.enrollmentYear}
               onChangeText={v => updateField('enrollmentYear', v)}
@@ -205,7 +218,7 @@ export default function StudentProfileScreen() {
               leftIcon="calendar"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Parent Phone"
               value={formData.parentPhone}
               onChangeText={v => updateField('parentPhone', v)}
@@ -214,7 +227,7 @@ export default function StudentProfileScreen() {
               leftIcon="call"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Address"
               value={formData.address}
               onChangeText={v => updateField('address', v)}
@@ -252,9 +265,7 @@ export default function StudentProfileScreen() {
               </View>
             </View>
             
-            <Button
-              title={user?.faceDescriptor ? 'Re-enroll Face' : 'Enroll Face'}
-              variant={user?.faceDescriptor ? 'secondary' : 'primary'}
+            <TouchableOpacity
               onPress={handleFaceEnroll}
               disabled={!editing}
             />

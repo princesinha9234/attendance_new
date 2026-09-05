@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, Alert, TouchableOpacity, Platform, Vibration } 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { BarCodeScanner } from 'expo-barcode-scanner';
-import { useCameraPermissions } from 'expo-camera';
+import { Camera } from 'expo-camera';
 import { useLocation } from '@/hooks/useLocation';
 import { api } from '@/services/api';
 import { Button } from '@/components/Button';
 import { Card, Loading, Badge } from '@/components';
 import { parseQRCodeData } from '@/utils/qr';
+
+const CustomButton = Button as any;
 
 interface DetailRowProps {
   label: string;
@@ -24,13 +26,22 @@ const DetailRow = ({ label, value }: DetailRowProps) => (
 
 export default function ScanQRScreen() {
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, setPermission] = useState<{ granted: boolean } | null>(null);
   const { getCurrentLocation } = useLocation();
   const [scanned, setScanned] = useState(false);
   const [sessionData, setSessionData] = useState<any>(null);
   const [verifying, setVerifying] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gettingLocation, setGettingLocation] = useState(false);
+
+  useEffect(() => {
+    Camera.getPermissionsAsync().then(setPermission);
+  }, []);
+
+  const requestPermission = async () => {
+    const result = await Camera.requestPermissionsAsync();
+    setPermission(result);
+  };
 
   const handleBarCodeScanned = useCallback(async ({ data }: { data: string }) => {
     if (scanned) return;
@@ -71,13 +82,15 @@ export default function ScanQRScreen() {
   const handleAttendance = async () => {
     if (!sessionData) return;
 
-    const { faceVerification } = await import('@/hooks/useFaceDetection');
-    const { extractFaceDescriptor } = faceVerification();
-
     router.push({
       pathname: '/student/face-verify',
       params: { sessionId: sessionData.id, sessionData: JSON.stringify(sessionData) },
-    });
+    } as any);
+  };
+
+  const handleScanAnotherQR = () => {
+    setScanned(false);
+    setSessionData(null);
   };
 
   const handleManualAttendance = async () => {
@@ -94,7 +107,7 @@ export default function ScanQRScreen() {
           <Text style={styles.permissionText}>
             Camera access is needed to scan QR codes for attendance.
           </Text>
-          <Button
+          <CustomButton
             title="Grant Permission"
             variant="primary"
             onPress={() => requestPermission()}
@@ -120,7 +133,7 @@ export default function ScanQRScreen() {
           <BarCodeScanner
             onBarCodeScanned={handleBarCodeScanned}
             style={StyleSheet.absoluteFillObject}
-            barcodeTypes={['qr']}
+            barCodeTypes={['qr']}
           />
         )}
 
@@ -175,16 +188,18 @@ export default function ScanQRScreen() {
             </View>
 
             <View style={styles.sessionActions}>
-              <Button
+              <CustomButton
                 title={sessionData.requireFaceVerify ? 'Verify Face & Mark Present' : 'Mark Present'}
                 variant="primary"
                 size="lg"
                 fullWidth
                 loading={verifying}
-                onPress={handleAttendance}
+                onPress={() => {
+                  void handleAttendance();
+                }}
               />
               
-              <Button
+              <CustomButton
                 title="Scan Another QR"
                 variant="outline"
                 size="md"
@@ -209,7 +224,7 @@ export default function ScanQRScreen() {
               <Text style={styles.helpText}>Ensure location is enabled for geofencing</Text>
             </View>
             <View style={styles.helpItem}>
-              <Ionicons name="scan-face" size={24} color="#2563EB" />
+              <Ionicons name="person" size={24} color="#2563EB" />
               <Text style={styles.helpText}>Face verification may be required after scanning</Text>
             </View>
           </Card>
@@ -217,9 +232,6 @@ export default function ScanQRScreen() {
       )}
     </View>
   );
-}
-
-}
 }
 
 const styles = StyleSheet.create({

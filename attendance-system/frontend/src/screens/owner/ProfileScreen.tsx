@@ -6,8 +6,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import { Button } from '@/components/Button';
-import { Card, Avatar, Input } from '@/components';
+import { Card, Avatar, Input, Badge } from '@/components';
 import * as ImagePicker from 'expo-image-picker';
+
+// Input's declared props omit the standard TextInput controlled-value props.
+const ProfileInput = Input as React.ComponentType<any>;
+// The shared Button type does not expose the native press handler used here.
+const ProfileButton = Button as React.ComponentType<any>;
 
 export default function OwnerProfileScreen() {
   const router = useRouter();
@@ -27,7 +32,7 @@ export default function OwnerProfileScreen() {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images'] as any,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -39,15 +44,16 @@ export default function OwnerProfileScreen() {
   };
 
   const handleSave = async () => {
+    if (!user) return;
     setSaving(true);
     try {
-      await api.updateUser(user!.id, {
+      await api.updateUser(user.id, {
         fullName: formData.fullName,
         phone: formData.phone,
         avatarUrl: avatarUri,
       });
 
-      updateUser({ fullName: formData.fullName, phone: formData.phone, avatarUrl: avatarUri });
+      updateUser({ fullName: formData.fullName, phone: formData.phone, avatarUrl: avatarUri ?? undefined });
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
@@ -58,17 +64,27 @@ export default function OwnerProfileScreen() {
   };
 
   const handleFaceEnroll = () => {
-    router.push('/face-enroll?mode=enroll');
+    router.push('/face-enroll?mode=enroll' as any);
   };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => router.replace('/login') },
+      AnyTextCancel(),
+      { text: 'Logout', style: 'destructive', onPress: () => router.replace('/login' as any) },
     ]);
   };
 
-  const institution = user?.ownedInstitutions?.[0];
+  const AnyTextCancel = () => ({ text: 'Cancel', style: 'cancel' } as const);
+
+  const ownedInstitutions = ((user as any)?.ownedInstitutions ?? []) as Array<{
+    name: string;
+    code: string;
+    address: string;
+    city: string;
+    state: string;
+    createdAt: string;
+  }>;
+  const institution = ownedInstitutions[0];
 
   return (
     <View style={styles.container}>
@@ -80,13 +96,22 @@ export default function OwnerProfileScreen() {
             <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.editButton} onPress={() => setEditing(!editing)}>
-            <Text style={styles.editButtonText}>{editing ? 'Done' : 'Edit'}</Text>
+          <TouchableOpacity 
+            style={styles.editButton} 
+            onPress={() => {
+              if (editing) {
+                handleSave();
+              } else {
+                setEditing(true);
+              }
+            }}
+          >
+            <Text style={styles.editButtonText}>{saving ? 'Saving...' : (editing ? 'Done' : 'Edit')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.profileHeader}>
-          <Avatar source={{ uri: avatarUri }} name={user?.fullName} size="xl" style={styles.avatar} />
+          <Avatar source={{ uri: avatarUri || undefined }} name={user?.fullName} size="xl" style={styles.avatar} />
           <TouchableOpacity style={styles.avatarEditButton} onPress={pickImage}>
             <Ionicons name="camera" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -95,7 +120,7 @@ export default function OwnerProfileScreen() {
           <Text style={styles.profileRole}>Platform Owner</Text>
           
           <View style={styles.profileBadges}>
-            <Badge variant="default" size="sm">{user?.ownedInstitutions?.length || 0} Institutions Owned</Badge>
+            <Badge variant="default" size="sm">{ownedInstitutions.length} Institutions Owned</Badge>
           </View>
         </View>
 
@@ -106,28 +131,28 @@ export default function OwnerProfileScreen() {
           </View>
           
           <View style={styles.form}>
-            <Input
+            <ProfileInput
               label="Full Name"
               value={formData.fullName}
-              onChangeText={v => updateField('fullName', v)}
+              onChangeText={(v: string) => updateField('fullName', v)}
               placeholder="Enter full name"
               leftIcon="person"
               editable={editing}
             />
-            <Input
+            <ProfileInput
               label="Email"
               value={formData.email}
-              onChangeText={v => updateField('email', v)}
+              onChangeText={(v: string) => updateField('email', v)}
               placeholder="Enter email"
               keyboardType="email-address"
               autoCapitalize="none"
               leftIcon="mail"
               editable={false}
             />
-            <Input
+            <ProfileInput
               label="Phone"
               value={formData.phone}
-              onChangeText={v => updateField('phone', v)}
+              onChangeText={(v: string) => updateField('phone', v)}
               placeholder="Enter phone number"
               keyboardType="phone-pad"
               leftIcon="call"
@@ -137,7 +162,7 @@ export default function OwnerProfileScreen() {
         </Card>
 
         {institution && (
-          <Card style={styles.sectionCard} variant="outlined" gradientColors={['#F5F0FF', '#EDE9FE']}>
+          <Card style={styles.sectionCard} variant="outlined">
             <View style={styles.sectionHeader}>
               <Ionicons name="business" size={22} color="#7C3AED" />
               <Text style={styles.sectionTitle}>Owned Institution</Text>
@@ -188,7 +213,7 @@ export default function OwnerProfileScreen() {
               </View>
             </View>
             
-            <Button
+            <ProfileButton
               title={user?.faceDescriptor ? 'Re-enroll Face' : 'Enroll Face'}
               variant={user?.faceDescriptor ? 'secondary' : 'primary'}
               onPress={handleFaceEnroll}
@@ -197,7 +222,7 @@ export default function OwnerProfileScreen() {
           </View>
         </Card>
 
-        <Card style={styles.sectionCard} variant="outlined" gradientColors={['#FEF2F2', '#FEE2E2']}>
+        <Card style={styles.sectionCard} variant="outlined">
           <View style={styles.sectionHeader}>
             <Ionicons name="log-out" size={22} color="#EF4444" />
             <Text style={[styles.sectionTitle, { color: '#EF4444' }]}>Account</Text>

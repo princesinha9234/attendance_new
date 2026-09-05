@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { ComponentProps, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,7 +137,7 @@ interface StatCardProps {
   label: string;
   value: number | string;
   color: string;
-  icon: string;
+  icon: ComponentProps<typeof Ionicons>['name'];
 }
 
 const StatCard = ({ label, value, color, icon }: StatCardProps) => (

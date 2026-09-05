@@ -18,7 +18,7 @@ const StatCard = ({ label, value, color, icon }: StatCardProps) => (
   <Card style={styles.statCard} variant="outlined">
     <View style={styles.statContent}>
       <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
+        <Ionicons name={icon as any} size={24} color={color} />
       </View>
       <View style={styles.statText}>
         <Text style={[styles.statValue, { color }]}>{value}</Text>
@@ -55,8 +55,8 @@ interface UserCardProps {
 
 const UserCard = ({ user }: UserCardProps) => (
   <View style={styles.userCard}>
-    <View style={styles.userInfo}>
-      <Text style={styles.userName}>{user.fullName}</Text>
+    <View style={styles.cardUserInfo}>
+      <Text style={styles.cardUserName}>{user.fullName}</Text>
       <Text style={styles.userEmail}>{user.email}</Text>
     </View>
     <Badge
@@ -78,7 +78,7 @@ interface ActionButtonProps {
 const ActionButton = ({ icon, label, color, onPress }: ActionButtonProps) => (
   <TouchableOpacity style={[styles.actionButton, { borderColor: color }]} onPress={onPress} activeOpacity={0.8}>
     <View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+      <Ionicons name={icon as any} size={24} color={color} />
     </View>
     <Text style={styles.actionLabel}>{label}</Text>
   </TouchableOpacity>
@@ -103,7 +103,10 @@ export default function OwnerDashboardScreen() {
 
       if (statsRes.data) setStats(statsRes.data);
       if (instRes.data?.institutions) setInstitutions(instRes.data.institutions.slice(0, 5));
-      if (usersRes.data) setRecentUsers(usersRes.data);
+      if (usersRes.data) {
+        const resData = usersRes.data as any;
+        setRecentUsers(Array.isArray(resData) ? resData : (resData.users || resData.data || []));
+      }
     } catch (error) {
       console.error('Fetch dashboard error:', error);
     } finally {
@@ -140,12 +143,12 @@ export default function OwnerDashboardScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.header}>
-          <View style={styles.userInfo}>
+          <View style={styles.headerUserInfo}>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.fullName}</Text>
+            <Text style={styles.headerUserName}>{user?.fullName}</Text>
             <Text style={styles.userRole}>Platform Owner</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/owner/profile')}>
+          <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/owner/profile' as any)}>
             <Ionicons name="settings" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -163,14 +166,14 @@ export default function OwnerDashboardScreen() {
         <View style={styles.institutionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Institutions</Text>
-            <TouchableOpacity onPress={() => router.push('/owner/institutions')}>
+            <TouchableOpacity onPress={() => router.push('/owner/institutions' as any)}>
               <Text style={styles.seeAll}>View All</Text>
             </TouchableOpacity>
           </View>
           {institutions.length > 0 ? (
             <View style={styles.institutionsList}>
               {institutions.map((inst: any) => (
-                <InstitutionCard key={inst.id} institution={inst} onPress={() => router.push('/owner/institutions')} />
+                <InstitutionCard key={inst.id} institution={inst} onPress={() => router.push('/owner/institutions' as any)} />
               ))}
             </View>
           ) : (
@@ -178,7 +181,7 @@ export default function OwnerDashboardScreen() {
               icon="🏫"
               title="No institutions yet"
               message="Create your first institution to get started"
-              action={{ label: 'Create Institution', onPress: () => router.push('/owner/institutions') }}
+              action={{ label: 'Create Institution', onPress: () => router.push('/owner/institutions' as any) }}
             />
           )}
         </View>
@@ -186,14 +189,14 @@ export default function OwnerDashboardScreen() {
         <View style={styles.recentUsersSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Users</Text>
-            <TouchableOpacity onPress={() => router.push('/owner/users')}>
+            <TouchableOpacity onPress={() => router.push('/owner/users' as any)}>
               <Text style={styles.seeAll}>View All</Text>
             </TouchableOpacity>
           </View>
           {recentUsers.length > 0 ? (
             <View style={styles.usersList}>
-              {recentUsers.slice(0, 5).map((user: any) => (
-                <UserCard key={user.id} user={user} />
+              {recentUsers.slice(0, 5).map((u: any) => (
+                <UserCard key={u.id} user={u} />
               ))}
             </View>
           ) : (
@@ -204,93 +207,16 @@ export default function OwnerDashboardScreen() {
         <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
-            <ActionButton icon="add" label="Add Institution" color="#7C3AED" onPress={() => router.push('/owner/institutions')} />
-            <ActionButton icon="person-add" label="Add User" color="#059669" onPress={() => router.push('/owner/users')} />
-            <ActionButton icon="analytics" label="View Analytics" color="#2563EB" onPress={() => router.push('/owner/analytics')} />
-            <ActionButton icon="settings" label="Settings" color="#6B7280" onPress={() => router.push('/owner/profile')} />
+            <ActionButton icon="add" label="Add Institution" color="#7C3AED" onPress={() => router.push('/owner/institutions' as any)} />
+            <ActionButton icon="person-add" label="Add User" color="#059669" onPress={() => router.push('/owner/users' as any)} />
+            <ActionButton icon="analytics" label="View Analytics" color="#2563EB" onPress={() => router.push('/owner/analytics' as any)} />
+            <ActionButton icon="settings" label="Settings" color="#6B7280" onPress={() => router.push('/owner/profile' as any)} />
           </View>
         </View>
       </ScrollView>
     </View>
   );
 }
-
-interface StatCardProps {
-  label: string;
-  value: number;
-  color: string;
-  icon: string;
-}
-
-const StatCard = ({ label, value, color, icon }: StatCardProps) => (
-  <Card style={styles.statCard} variant="outlined">
-    <View style={styles.statContent}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.statText}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </View>
-  </Card>
-);
-
-interface InstitutionCardProps {
-  institution: any;
-  onPress: () => void;
-}
-
-const InstitutionCard = ({ institution, onPress }: InstitutionCardProps) => (
-  <TouchableOpacity style={styles.institutionCard} onPress={onPress} activeOpacity={0.8}>
-    <View style={styles.institutionInfo}>
-      <Text style={styles.institutionName}>{institution.name}</Text>
-      <Text style={styles.institutionLocation}>{institution.city}, {institution.state}</Text>
-      <Text style={styles.institutionCode}>Code: {institution.code}</Text>
-    </View>
-    <View style={styles.institutionStats}>
-      <Text style={styles.institutionStatLabel}>Teachers</Text>
-      <Text style={styles.institutionStatValue}>{institution._count?.teachers || 0}</Text>
-      <Text style={styles.institutionStatLabel}>Classes</Text>
-      <Text style={styles.institutionStatValue}>{institution._count?.classes || 0}</Text>
-    </View>
-  </TouchableOpacity>
-);
-
-interface UserCardProps {
-  user: any;
-}
-
-const UserCard = ({ user }: UserCardProps) => (
-  <View style={styles.userCard}>
-    <View style={styles.userInfo}>
-      <Text style={styles.userName}>{user.fullName}</Text>
-      <Text style={styles.userEmail}>{user.email}</Text>
-    </View>
-    <Badge
-      variant={user.role === 'STUDENT' ? 'info' : user.role === 'TEACHER' ? 'success' : 'default'}
-      size="sm"
-    >
-      {user.role}
-    </Badge>
-  </View>
-);
-
-interface ActionButtonProps {
-  icon: string;
-  label: string;
-  color: string;
-  onPress: () => void;
-}
-
-const ActionButton = ({ icon, label, color, onPress }: ActionButtonProps) => (
-  <TouchableOpacity style={[styles.actionButton, { borderColor: color }]} onPress={onPress} activeOpacity={0.8}>
-    <View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}>
-      <Ionicons name={icon} size={24} color={color} />
-    </View>
-    <Text style={styles.actionLabel}>{label}</Text>
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
@@ -311,9 +237,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
   },
-  userInfo: { gap: 4 },
+  headerUserInfo: { gap: 4 },
   greeting: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  userName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
+  headerUserName: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
   userRole: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   profileButton: { padding: 8 },
   statsSection: { paddingHorizontal: 24, marginTop: 10, marginBottom: 24 },
@@ -358,8 +284,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  userInfo: { flex: 1 },
-  userName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  cardUserInfo: { flex: 1 },
+  cardUserName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
   userEmail: { fontSize: 13, color: '#64748B', marginTop: 2 },
   quickActions: { paddingHorizontal: 24 },
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16 },
