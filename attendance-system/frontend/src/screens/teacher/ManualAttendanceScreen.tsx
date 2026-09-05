@@ -8,6 +8,85 @@ import { api } from '@/services/api';
 import { Button } from '@/components/Button';
 import { Card, Badge, Loading, EmptyState } from '@/components';
 
+interface StatCardProps {
+  label: string;
+  value: number;
+  color: string;
+}
+
+const StatCard = ({ label, value, color }: StatCardProps) => (
+  <Card style={styles.statCard} variant="outlined">
+    <View style={styles.statContent}>
+      <View style={styles.statText}>
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  </Card>
+);
+
+interface StudentRowProps {
+  student: any;
+  onMarkAttendance: (id: string, status: string) => void;
+  saving: boolean;
+}
+
+const StudentRow = ({ student, onMarkAttendance, saving }: StudentRowProps) => {
+  const attendance = student.attendance;
+  const user = student.user;
+
+  return (
+    <Card style={styles.studentCard}>
+      <View style={styles.studentRow}>
+        <View style={styles.studentInfo}>
+          <Text style={styles.studentName}>{user?.fullName}</Text>
+          <Text style={styles.studentId}>{student.studentId}</Text>
+        </View>
+
+        <View style={styles.attendanceActions}>
+          {attendance ? (
+            <View style={styles.currentStatus}>
+              <Badge
+                variant={attendance.status === 'PRESENT' ? 'success' : attendance.status === 'LATE' ? 'warning' : 'danger'}
+                dot
+                size="sm"
+              >
+                {attendance.status}
+              </Badge>
+              <Text style={styles.method}>{attendance.method === 'MANUAL' ? 'Manual' : attendance.method === 'QR_FACE' ? 'QR+Face' : 'QR'}</Text>
+              {attendance.faceVerified && <Ionicons name="checkmark-shield" size={16} color="#10B981" style={{ marginLeft: 8 }} />}
+            </View>
+          ) : (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.presentBtn, saving && styles.saving]}
+                onPress={() => !saving && onMarkAttendance(student.id, 'PRESENT')}
+                disabled={saving}
+              >
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.lateBtn, saving && styles.saving]}
+                onPress={() => !saving && onMarkAttendance(student.id, 'LATE')}
+                disabled={saving}
+              >
+                <Ionicons name="time" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.absentBtn, saving && styles.saving]}
+                onPress={() => !saving && onMarkAttendance(student.id, 'ABSENT')}
+                disabled={saving}
+              >
+                <Ionicons name="close" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Card>
+  );
+};
+
 export default function ManualAttendanceScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ sessionId: string }>();
@@ -190,84 +269,8 @@ export default function ManualAttendanceScreen() {
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: number;
-  color: string;
 }
-
-const StatCard = ({ label, value, color }: StatCardProps) => (
-  <Card style={styles.statCard} variant="outlined">
-    <View style={styles.statContent}>
-      <View style={styles.statText}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </View>
-  </Card>
-);
-
-interface StudentRowProps {
-  student: any;
-  onMarkAttendance: (id: string, status: string) => void;
-  saving: boolean;
 }
-
-const StudentRow = ({ student, onMarkAttendance, saving }: StudentRowProps) => {
-  const attendance = student.attendance;
-  const user = student.user;
-
-  return (
-    <Card style={styles.studentCard}>
-      <View style={styles.studentRow}>
-        <View style={styles.studentInfo}>
-          <Text style={styles.studentName}>{user?.fullName}</Text>
-          <Text style={styles.studentId}>{student.studentId}</Text>
-        </View>
-
-        <View style={styles.attendanceActions}>
-          {attendance ? (
-            <View style={styles.currentStatus}>
-              <Badge
-                variant={attendance.status === 'PRESENT' ? 'success' : attendance.status === 'LATE' ? 'warning' : 'danger'}
-                dot
-                size="sm"
-              >
-                {attendance.status}
-              </Badge>
-              <Text style={styles.method}>{attendance.method === 'MANUAL' ? 'Manual' : attendance.method === 'QR_FACE' ? 'QR+Face' : 'QR'}</Text>
-              {attendance.faceVerified && <Ionicons name="checkmark-shield" size={16} color="#10B981" style={{ marginLeft: 8 }} />}
-            </View>
-          ) : (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.presentBtn, saving && styles.saving]}
-                onPress={() => !saving && onMarkAttendance(student.id, 'PRESENT')}
-                disabled={saving}
-              >
-                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.lateBtn, saving && styles.saving]}
-                onPress={() => !saving && onMarkAttendance(student.id, 'LATE')}
-                disabled={saving}
-              >
-                <Ionicons name="time" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.absentBtn, saving && styles.saving]}
-                onPress={() => !saving && onMarkAttendance(student.id, 'ABSENT')}
-                disabled={saving}
-              >
-                <Ionicons name="close" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </View>
-    </Card>
-  );
-};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, Platform, TouchableOpacity, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,18 @@ import { api } from '@/services/api';
 import { Button } from '@/components/Button';
 import { Card, Loading, Badge } from '@/components';
 import { formatDate, formatTime } from '@/utils/format';
+
+interface InstructionRowProps {
+  number: number;
+  text: string;
+}
+
+const InstructionRow = ({ number, text }: InstructionRowProps) => (
+  <View style={styles.instructionRow}>
+    <View style={styles.instructionNumber}>{number}</View>
+    <Text style={styles.instructionText}>{text}</Text>
+  </View>
+);
 
 export default function QRDisplayScreen() {
   const router = useRouter();
@@ -139,7 +151,7 @@ export default function QRDisplayScreen() {
                   <Text style={styles.timerText}>{formatTimeRemaining(timeRemaining)} remaining</Text>
                 </View>
 
-                <View style={settings.qrInstructions}>
+                <View style={styles.qrInstructions}>
                   <Text style={styles.instructionTitle}>Instructions for Students:</Text>
                   <InstructionRow number={1} text="Open the Attendance app" />
                   <InstructionRow number={2} text="Tap 'Scan QR Code'" />
@@ -189,18 +201,6 @@ export default function QRDisplayScreen() {
     </View>
   );
 }
-
-interface InstructionRowProps {
-  number: number;
-  text: string;
-}
-
-const InstructionRow = ({ number, text }: InstructionRowProps) => (
-  <View style={styles.instructionRow}>
-    <View style={styles.instructionNumber}>{number}</View>
-    <Text style={styles.instructionText}>{text}</Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
@@ -253,5 +253,3 @@ const styles = StyleSheet.create({
   expiredTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
   expiredText: { fontSize: 14, color: '#64748B', textAlign: 'center' },
 });
-
-const settings = styles;

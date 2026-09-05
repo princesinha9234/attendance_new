@@ -1,13 +1,153 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
-import { Button } from '@/components/Button';
+import { Button as AppButton } from '@/components/Button';
 import { Card, Badge, Loading, EmptyState, Modal } from '@/components';
 import { formatDate, formatTime, getSessionStatusColor } from '@/utils/format';
+
+const Button = AppButton as any;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 160,
+  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingBottom: 30 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 16,
+  },
+  backButton: { padding: 8 },
+  headerCenter: { flex: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
+  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  moreButton: { padding: 8 },
+  statusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginTop: -10,
+    marginBottom: 20,
+  },
+  statusInfo: { flex: 1, gap: 2 },
+  statusDate: { fontSize: 12, color: '#64748B' },
+  statusTime: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
+  statusActions: { flexDirection: 'row', alignItems: 'center' },
+  statsContainer: { paddingHorizontal: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
+  statCard: { flex: 1, minWidth: '45%' },
+  statContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  statText: { gap: 2 },
+  statValue: { fontSize: 24, fontWeight: '700' },
+  statLabel: { fontSize: 12, color: '#647280' },
+  sectionCard: { marginHorizontal: 24, marginBottom: 20 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
+  sectionTitle: { flex: 1, marginLeft: 8, fontSize: 16, fontWeight: '700', color: '#1E293B' },
+  manualButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#059669', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  manualButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
+  attendanceList: { gap: 10 },
+  attendanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  studentInfo: { flex: 1 },
+  studentName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  studentId: { fontSize: 13, color: '#64748B', marginTop: 2 },
+  attendanceStatus: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  method: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
+  detailsList: { gap: 14 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  detailContent: { flex: 1, gap: 2 },
+  detailLabel: { fontSize: 12, color: '#94A3B8' },
+  detailValue: { fontSize: 13, color: '#1E293B', fontWeight: '500' },
+  qrActive: { alignItems: 'center', paddingVertical: 4 },
+  qrActiveText: { fontSize: 14, color: '#64748B', textAlign: 'center' },
+  qrExpires: { fontSize: 12, color: '#94A3B8', marginTop: 6 },
+  qrModalContent: { alignItems: 'center', gap: 16 },
+  qrImageContainer: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16 },
+  qrImage: { width: 250, height: 250 },
+  qrInstruction: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 12 },
+  qrToken: { fontSize: 12, color: '#94A3B8', fontFamily: 'monospace', marginTop: 4 },
+  confirmModalContent: { alignItems: 'center', gap: 16 },
+  confirmTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', textAlign: 'center' },
+  confirmMessage: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 },
+  confirmActions: { flexDirection: 'row', width: '100%', marginTop: 8 },
+});
+
+interface StatCardProps {
+  label: string;
+  value: number | string;
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+const StatCard = ({ label, value, color, icon }: StatCardProps) => (
+  <Card style={styles.statCard} variant="outlined">
+    <View style={styles.statContent}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.statText}>
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  </Card>
+);
+
+interface AttendanceRowProps {
+  record: any;
+}
+
+const AttendanceRow = ({ record }: AttendanceRowProps) => {
+  const student = record.student?.user;
+  return (
+    <View style={styles.attendanceRow}>
+      <View style={styles.studentInfo}>
+        <Text style={styles.studentName}>{student?.fullName}</Text>
+        <Text style={styles.studentId}>{record.student?.studentId}</Text>
+      </View>
+      <View style={styles.attendanceStatus}>
+        <Badge
+          variant={record.status === 'PRESENT' ? 'success' : record.status === 'LATE' ? 'warning' : 'danger'}
+          dot
+          size="sm"
+        >
+          {record.status}
+        </Badge>
+        <Text style={styles.method}>{record.method === 'QR_FACE' ? 'QR+Face' : record.method === 'MANUAL' ? 'Manual' : 'QR'}</Text>
+        {record.faceVerified && <Ionicons name="checkmark-circle" size={16} color="#10B981" style={{ marginLeft: 8 }} />}
+      </View>
+    </View>
+  );
+};
+
+interface DetailRowProps {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+}
+
+const DetailRow = ({ icon, label, value }: DetailRowProps) => (
+  <View style={styles.detailRow}>
+    <Ionicons name={icon} size={18} color="#94A3B8" style={{ width: 24 }} />
+    <View style={styles.detailContent}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  </View>
+);
 
 export default function SessionDetailScreen() {
   const router = useRouter();
@@ -41,7 +181,7 @@ export default function SessionDetailScreen() {
     try {
       const response = await api.getSessionAttendance(params.id);
       if (response.data) {
-        setAttendance(response.data);
+        setAttendance(response.data.data);
       }
     } catch (error) {
       console.error('Fetch attendance error:', error);
@@ -72,7 +212,7 @@ export default function SessionDetailScreen() {
   const startSession = async () => {
     setStarting(true);
     try {
-      const response = await api.startSession(params.id);
+      const response = await api.startSession(params.id, {});
       if (response.error) throw new Error(response.error);
       fetchSession();
     } catch (error) {
@@ -98,7 +238,7 @@ export default function SessionDetailScreen() {
   };
 
   const handleManualAttendance = () => {
-    router.push(`/teacher/manual-attendance?sessionId=${params.id}`);
+    router.push(`/teacher/manual-attendance?sessionId=${params.id}` as any);
   };
 
   if (loading) {
@@ -144,7 +284,7 @@ export default function SessionDetailScreen() {
             <Text style={styles.headerSubtitle}>{className} • {subjectCode}</Text>
           </View>
           <TouchableOpacity style={styles.moreButton} onPress={() => {}}>
-            <Ionicons name="more" size={28} color="#FFFFFF" />
+            <Ionicons name="ellipsis-horizontal" size={28} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
@@ -231,7 +371,7 @@ export default function SessionDetailScreen() {
             {session.allowedRadius && (
               <DetailRow icon="radio" label="Allowed Radius" value={`${session.allowedRadius}m`} />
             )}
-            <DetailRow icon={session.requireFaceVerify ? 'checkmark-shield' : 'shield-off'} label="Face Verification" value={session.requireFaceVerify ? 'Required' : 'Not Required'} />
+            <DetailRow icon={session.requireFaceVerify ? 'shield-checkmark' : 'shield'} label="Face Verification" value={session.requireFaceVerify ? 'Required' : 'Not Required'} />
             {session.actualStart && (
               <DetailRow icon="play-circle" label="Actual Start" value={formatTime(session.actualStart)} />
             )}
@@ -269,140 +409,6 @@ export default function SessionDetailScreen() {
           </View>
         </View>
       </Modal>
-    );
-  }
-}
-
-interface StatCardProps {
-  label: string;
-  value: number;
-  color: string;
-  icon: string;
-}
-
-const StatCard = ({ label, value, color, icon }: StatCardProps) => (
-  <Card style={styles.statCard} variant="outlined">
-    <View style={styles.statContent}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.statText}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </View>
-  </Card>
-);
-
-interface AttendanceRowProps {
-  record: any;
-}
-
-const AttendanceRow = ({ record }: AttendanceRowProps) => {
-  const student = record.student?.user;
-  return (
-    <View style={styles.attendanceRow}>
-      <View style={styles.studentInfo}>
-        <Text style={styles.studentName}>{student?.fullName}</Text>
-        <Text style={styles.studentId}>{record.student?.studentId}</Text>
-      </View>
-      <View style={styles.attendanceStatus}>
-        <Badge
-          variant={record.status === 'PRESENT' ? 'success' : record.status === 'LATE' ? 'warning' : 'danger'}
-          dot
-          size="sm"
-        >
-          {record.status}
-        </Badge>
-        <Text style={styles.method}>{record.method === 'QR_FACE' ? 'QR+Face' : record.method === 'MANUAL' ? 'Manual' : 'QR'}</Text>
-        {record.faceVerified && <Ionicons name="checkmark-shield" size={16} color="#10B981" style={{ marginLeft: 8 }} />}
-      </View>
     </View>
   );
-};
-
-interface DetailRowProps {
-  icon: string;
-  label: string;
-  value: string;
 }
-
-const DetailRow = ({ icon, label, value }: DetailRowProps) => (
-  <View style={styles.detailRow}>
-    <Ionicons name={icon} size={18} color="#94A3B8" style={{ width: 24 }} />
-    <View style={styles.detailContent} flex={1}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  </View>
-);
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 160,
-  },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { paddingBottom: 30 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 16,
-  },
-  backButton: { padding: 8 },
-  headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
-  headerSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  moreButton: { padding: 8 },
-  statusBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginTop: -10,
-    marginBottom: 20,
-  },
-  statusInfo: { flex: 1, gap: 2 },
-  statusDate: { fontSize: 12, color: '#64748B' },
-  statusTime: { fontSize: 14, fontWeight: '600', color: '#1E293B' },
-  statusActions: { flexDirection: 'row', alignItems: 'center' },
-  statsContainer: { paddingHorizontal: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
-  statCard: { flex: 1, minWidth: '45%' },
-  statContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  statIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  statText: { gap: 2 },
-  statValue: { fontSize: 24, fontWeight: '700' },
-  statLabel: { fontSize: 12, color: '#647280' },
-  sectionCard: { marginHorizontal: 24, marginBottom: 20 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  manualButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#059669', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  manualButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 13 },
-  attendanceList: { gap: 10 },
-  attendanceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
-  studentInfo: { flex: 1 },
-  studentName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  studentId: { fontSize: 13, color: '#64748B', marginTop: 2 },
-  attendanceStatus: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  method: { fontSize: 11, fontWeight: '600', color: '#94A3B8' },
-  detailsList: { gap: 14 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  detailContent: { flex: 1, gap: 2 },
-  detailLabel: { fontSize: 12, color: '#94A3B8' },
-  detailValue: { fontSize: 13, color: '#1E293B', fontWeight: '500' },
-  qrModalContent: { alignItems: 'center', gap: 16 },
-  qrImageContainer: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16 },
-  qrImage: { width: 250, height: 250 },
-  qrInstruction: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 12 },
-  qrToken: { fontSize: 12, color: '#94A3B8', fontFamily: 'monospace', marginTop: 4 },
-  confirmModalContent: { alignItems: 'center', gap: 16 },
-  confirmTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', textAlign: 'center' },
-  confirmMessage: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20 },
-  confirmActions: { flexDirection: 'row', width: '100%', marginTop: 8 },
-});

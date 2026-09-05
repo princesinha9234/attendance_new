@@ -7,6 +7,83 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import { Card, Badge, Loading, EmptyState } from '@/components';
 
+interface StatCardProps {
+  label: string;
+  value: number;
+  color: string;
+  icon: string;
+}
+
+const StatCard = ({ label, value, color, icon }: StatCardProps) => (
+  <Card style={styles.statCard} variant="outlined">
+    <View style={styles.statContent}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.statText}>
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  </Card>
+);
+
+interface InstitutionCardProps {
+  institution: any;
+  onPress: () => void;
+}
+
+const InstitutionCard = ({ institution, onPress }: InstitutionCardProps) => (
+  <TouchableOpacity style={styles.institutionCard} onPress={onPress} activeOpacity={0.8}>
+    <View style={styles.institutionInfo}>
+      <Text style={styles.institutionName}>{institution.name}</Text>
+      <Text style={styles.institutionLocation}>{institution.city}, {institution.state}</Text>
+      <Text style={styles.institutionCode}>Code: {institution.code}</Text>
+    </View>
+    <View style={styles.institutionStats}>
+      <Text style={styles.institutionStatLabel}>Teachers</Text>
+      <Text style={styles.institutionStatValue}>{institution._count?.teachers || 0}</Text>
+      <Text style={styles.institutionStatLabel}>Classes</Text>
+      <Text style={styles.institutionStatValue}>{institution._count?.classes || 0}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+interface UserCardProps {
+  user: any;
+}
+
+const UserCard = ({ user }: UserCardProps) => (
+  <View style={styles.userCard}>
+    <View style={styles.userInfo}>
+      <Text style={styles.userName}>{user.fullName}</Text>
+      <Text style={styles.userEmail}>{user.email}</Text>
+    </View>
+    <Badge
+      variant={user.role === 'STUDENT' ? 'info' : user.role === 'TEACHER' ? 'success' : 'default'}
+      size="sm"
+    >
+      {user.role}
+    </Badge>
+  </View>
+);
+
+interface ActionButtonProps {
+  icon: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+}
+
+const ActionButton = ({ icon, label, color, onPress }: ActionButtonProps) => (
+  <TouchableOpacity style={[styles.actionButton, { borderColor: color }]} onPress={onPress} activeOpacity={0.8}>
+    <View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}>
+      <Ionicons name={icon} size={24} color={color} />
+    </View>
+    <Text style={styles.actionLabel}>{label}</Text>
+  </TouchableOpacity>
+);
+
 export default function OwnerDashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();

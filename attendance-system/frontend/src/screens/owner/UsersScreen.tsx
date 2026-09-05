@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,11 +7,112 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import { Card, Badge, Loading, EmptyState, Modal, Input, Button } from '@/components';
 
+interface UserInputProps {
+  label?: string;
+  value?: string;
+  onChangeText?: (value: string) => void;
+  keyboardType?: string;
+  autoCapitalize?: string;
+  secureTextEntry?: boolean;
+  leftIcon?: string;
+  rightIcon?: string;
+  rightIconOnPress?: () => void;
+  style?: object;
+}
+
+const UserInput = Input as React.ComponentType<UserInputProps>;
+
+type UserRole = 'STUDENT' | 'TEACHER' | 'PLATFORM_OWNER';
+
+interface StudentProfile {
+  branch: string;
+}
+
+interface TeacherProfile {
+  department: string;
+}
+
+interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  isActive: boolean;
+  studentProfile?: StudentProfile;
+  teacherProfile?: TeacherProfile;
+}
+
+interface UserFormData {
+  email: string;
+  password: string;
+  fullName: string;
+  role: UserRole;
+  phone: string;
+  studentId: string;
+  branch: string;
+  classId: string;
+  semester: string;
+  enrollmentYear: string;
+  employeeId: string;
+  department: string;
+  designation: string;
+  institutionId: string;
+}
+
 interface UserCardProps {
-  user: any;
+  user: User;
   onDelete: (id: string, name: string) => void;
   onToggle: (id: string, active: boolean) => void;
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40, gap: 16 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: { padding: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
+  addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  filterCard: { width: '100%', padding: 16 },
+  searchRow: { marginBottom: 16 },
+  roleFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  roleFilter: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
+  roleFilterActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  roleFilterText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+  roleFilterTextActive: { color: '#FFFFFF' },
+  listContent: { gap: 12, paddingBottom: 20 },
+  loadingMore: { paddingVertical: 12, alignItems: 'center' },
+  userCard: { padding: 16 },
+  userRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  userInfo: { flex: 1, gap: 4 },
+  userName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  userMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  userEmail: { fontSize: 13, color: '#64748B' },
+  userPhone: { fontSize: 13, color: '#94A3B8' },
+  userBadges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginVertical: 8 },
+  userActions: { flexDirection: 'row', gap: 12 },
+  toggleButton: { padding: 8 },
+  deleteButton: { padding: 8 },
+  modalContent: { gap: 16 },
+  roleSelector: { flexDirection: 'row', gap: 10 },
+  modalRoleOption: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center' },
+  modalRoleOptionActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  modalRoleText: { fontSize: 14, fontWeight: '600', color: '#475569' },
+  modalRoleTextActive: { color: '#FFFFFF' },
+  modalActions: { flexDirection: 'row', marginTop: 8 },
+});
 
 const UserCard = ({ user, onDelete, onToggle }: UserCardProps) => {
   const isStudent = user.role === 'STUDENT';
@@ -36,10 +137,10 @@ const UserCard = ({ user, onDelete, onToggle }: UserCardProps) => {
             {user.role}
           </Badge>
           {isStudent && user.studentProfile && (
-            <Badge variant="outline" size="xs">{user.studentProfile.branch}</Badge>
+            <Badge variant="outline" size="sm">{user.studentProfile.branch}</Badge>
           )}
           {isTeacher && user.teacherProfile && (
-            <Badge variant="outline" size="xs">{user.teacherProfile.department}</Badge>
+            <Badge variant="outline" size="sm">{user.teacherProfile.department}</Badge>
           )}
         </View>
 
@@ -59,15 +160,15 @@ const UserCard = ({ user, onDelete, onToggle }: UserCardProps) => {
 export default function UsersScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [users, setUsers] = useState<any[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'STUDENT' | 'TEACHER' | 'PLATFORM_OWNER'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserFormData>({
     email: '',
     password: '',
     fullName: '',
@@ -96,11 +197,11 @@ export default function UsersScreen() {
 
       if (response.data) {
         if (append) {
-          setUsers(prev => [...prev, ...response.data!]);
+          setUsers(prev => [...prev, ...(response.data?.data ?? [])]);
         } else {
-          setUsers(response.data);
+          setUsers(response.data?.data ?? []);
         }
-        setHasMore(response.pagination?.page < response.pagination?.pages);
+        setHasMore(response.data.pagination?.page < response.data.pagination?.pages);
       }
     } catch (error) {
       console.error('Fetch users error:', error);
@@ -208,8 +309,7 @@ export default function UsersScreen() {
 
         <Card style={styles.filterCard} variant="elevated">
           <View style={styles.searchRow}>
-            <Input
-              placeholder="Search users..."
+            <UserInput
               value={search}
               onChangeText={setSearch}
               leftIcon="search"
@@ -286,110 +386,75 @@ export default function UsersScreen() {
             ))}
           </View>
 
-          <Input
+          <UserInput
             label="Full Name"
-            placeholder="Enter full name"
             value={formData.fullName}
-            onChangeText={v => setFormData({ ...formData, fullName: v })}
+            onChangeText={(v: string) => setFormData({ ...formData, fullName: v })}
             leftIcon="person"
           />
-          <Input
+          <UserInput
             label="Email"
-            placeholder="Enter email"
             value={formData.email}
-            onChangeText={v => setFormData({ ...formData, email: v })}
+            onChangeText={(v: string) => setFormData({ ...formData, email: v })}
             keyboardType="email-address"
             autoCapitalize="none"
             leftIcon="mail"
           />
-          <Input
+          <UserInput
             label="Password"
-            placeholder="Min 8 characters"
             value={formData.password}
-            onChangeText={v => setFormData({ ...formData, password: v })}
+            onChangeText={(v: string) => setFormData({ ...formData, password: v })}
             secureTextEntry
             leftIcon="lock-closed"
           />
-          <Input
+          <UserInput
             label="Phone (Optional)"
-            placeholder="Enter phone number"
             value={formData.phone}
-            onChangeText={v => setFormData({ ...formData, phone: v })}
+            onChangeText={(v: string) => setFormData({ ...formData, phone: v })}
             keyboardType="phone-pad"
             leftIcon="call"
           />
 
           {formData.role === 'STUDENT' && (
             <>
-              <Input label="Student ID" placeholder="e.g., CS2021001" value={formData.studentId} onChangeText={v => setFormData({ ...formData, studentId: v })} leftIcon="id-card" />
-              <Input label="Branch" placeholder="e.g., CSE" value={formData.branch} onChangeText={v => setFormData({ ...formData, branch: v })} leftIcon="school" />
-              <Input label="Class ID" placeholder="e.g., CSE-3A" value={formData.classId} onChangeText={v => setFormData({ ...formData, classId: v })} leftIcon="layers" />
-              <Input label="Semester" placeholder="e.g., 5" value={formData.semester} onChangeText={v => setFormData({ ...formData, semester: v })} keyboardType="numeric" leftIcon="numeric" />
-              <Input label="Enrollment Year" placeholder="e.g., 2021" value={formData.enrollmentYear} onChangeText={v => setFormData({ ...formData, enrollmentYear: v })} keyboardType="numeric" leftIcon="calendar" />
+              <UserInput label="Student ID" value={formData.studentId} onChangeText={v => setFormData({ ...formData, studentId: v })} leftIcon="id-card" />
+              <UserInput label="Branch" value={formData.branch} onChangeText={v => setFormData({ ...formData, branch: v })} leftIcon="school" />
+              <UserInput label="Class ID" value={formData.classId} onChangeText={v => setFormData({ ...formData, classId: v })} leftIcon="layers" />
+              <UserInput label="Semester" value={formData.semester} onChangeText={v => setFormData({ ...formData, semester: v })} keyboardType="numeric" leftIcon="numeric" />
+              <UserInput label="Enrollment Year" value={formData.enrollmentYear} onChangeText={v => setFormData({ ...formData, enrollmentYear: v })} keyboardType="numeric" leftIcon="calendar" />
             </>
           )}
 
           {formData.role === 'TEACHER' && (
             <>
-              <Input label="Employee ID" placeholder="e.g., EMP001" value={formData.employeeId} onChangeText={v => setFormData({ ...formData, employeeId: v })} leftIcon="id-card" />
-              <Input label="Department" placeholder="e.g., Computer Science" value={formData.department} onChangeText={v => setFormData({ ...formData, department: v })} leftIcon="school" />
-              <Input label="Designation" placeholder="e.g., Professor" value={formData.designation} onChangeText={v => setFormData({ ...formData, designation: v })} leftIcon="briefcase" />
-              <Input label="Institution ID" placeholder="Enter institution ID" value={formData.institutionId} onChangeText={v => setFormData({ ...formData, institutionId: v })} leftIcon="business" />
+              <UserInput label="Employee ID" value={formData.employeeId} onChangeText={v => setFormData({ ...formData, employeeId: v })} leftIcon="id-card" />
+              <UserInput label="Department" value={formData.department} onChangeText={v => setFormData({ ...formData, department: v })} leftIcon="school" />
+              <UserInput label="Designation" value={formData.designation} onChangeText={v => setFormData({ ...formData, designation: v })} leftIcon="briefcase" />
+              <UserInput label="Institution ID" value={formData.institutionId} onChangeText={v => setFormData({ ...formData, institutionId: v })} leftIcon="business" />
             </>
           )}
 
           <View style={styles.modalActions}>
-            <Button title="Cancel" variant="outline" onPress={() => setShowCreateModal(false)} style={{ flex: 1, marginRight: 8 }} />
-            <Button title="Create User" variant="primary" loading={creating} onPress={handleCreate} style={{ flex: 1, marginLeft: 8 }} />
+            <Button
+              {...({
+                title: 'Cancel',
+                variant: 'outline',
+                onPress: () => setShowCreateModal(false),
+                style: { flex: 1, marginRight: 8 },
+              } as any)}
+            />
+            <Button
+              {...({
+                title: 'Create User',
+                variant: 'primary',
+                loading: creating,
+                onPress: handleCreate,
+                style: { flex: 1, marginLeft: 8 },
+              } as any)}
+            />
           </View>
         </ScrollView>
       </Modal>
-    );
-  }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40, gap: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: { padding: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
-  addButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  filterCard: { width: '100%', padding: 16 },
-  searchRow: { marginBottom: 16 },
-  roleFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  roleFilter: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
-  roleFilterActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  roleFilterText: { fontSize: 13, fontWeight: '600', color: '#475569' },
-  roleFilterTextActive: { color: '#FFFFFF' },
-  listContent: { gap: 12, paddingBottom: 20 },
-  userCard: { padding: 16 },
-  userRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  userInfo: { flex: 1, gap: 4 },
-  userName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  userMeta: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  userEmail: { fontSize: 13, color: '#64748B' },
-  userPhone: { fontSize: 13, color: '#94A3B8' },
-  userBadges: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginVertical: 8 },
-  userActions: { flexDirection: 'row', gap: 12 },
-  toggleButton: { padding: 8 },
-  deleteButton: { padding: 8 },
-  modalContent: { gap: 16 },
-  roleSelector: { flexDirection: 'row', gap: 10 },
-  modalRoleOption: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center' },
-  modalRoleOptionActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  modalRoleText: { fontSize: 14, fontWeight: '600', color: '#475569' },
-  modalRoleTextActive: { color: '#FFFFFF' },
-  modalActions: { flexDirection: 'row', marginTop: 8 },
-});
+    </View>
+  );
+}

@@ -8,6 +8,89 @@ import { api } from '@/services/api';
 import { Card, Badge, EmptyState, Loading } from '@/components';
 import { formatDate, formatRelativeTime, getAttendanceStatusColor } from '@/utils/format';
 
+interface StatCardProps {
+  label: string;
+  value: number;
+  color: string;
+  icon: string;
+}
+
+const StatCard = ({ label, value, color, icon }: StatCardProps) => (
+  <Card style={styles.statCard} variant="outlined">
+    <View style={styles.statContent}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.statText}>
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  </Card>
+);
+
+interface AttendanceRecordCardProps {
+  record: any;
+}
+
+const AttendanceRecordCard = ({ record }: AttendanceRecordCardProps) => {
+  const session = record.session;
+  const subject = session?.subjectClassMapping?.subject?.name;
+  const className = session?.subjectClassMapping?.class?.name;
+  const teacher = session?.subjectClassMapping?.teacher?.user?.fullName;
+  const date = formatDate(record.markedAt);
+  const time = new Date(record.markedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  return (
+    <Card style={styles.recordCard}>
+      <View style={styles.recordHeader}>
+        <View style={styles.recordSubject}>
+          <Text style={styles.recordSubjectName}>{subject}</Text>
+          <Text style={styles.recordClass}>{className}</Text>
+        </View>
+        <Badge
+          variant={record.status === 'PRESENT' ? 'success' : record.status === 'LATE' ? 'warning' : 'danger'}
+          dot
+          size="md"
+        >
+          {record.status}
+        </Badge>
+      </View>
+
+      <View style={styles.recordDetails}>
+        <DetailRow icon="person" label="Teacher" value={teacher} />
+        <DetailRow icon="time" label="Date & Time" value={`${date} at ${time}`} />
+        <DetailRow icon={record.method === 'QR_FACE' ? 'scan-face' : record.method === 'MANUAL' ? 'create' : 'qr-code'} 
+          label="Method" 
+          value={record.method === 'QR_FACE' ? 'QR + Face' : record.method === 'MANUAL' ? 'Manual by Teacher' : 'QR Only'} 
+        />
+        {record.faceVerified && (
+          <DetailRow icon="checkmark-shield" label="Face Verified" value={`${Math.round((record.faceMatchScore || 1) * 100)}% match`} />
+        )}
+        {record.latitude && record.longitude && (
+          <DetailRow icon="location" label="Location" value={`${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}`} />
+        )}
+      </View>
+    </Card>
+  );
+};
+
+interface DetailRowProps {
+  icon: string;
+  label: string;
+  value: string;
+}
+
+const DetailRow = ({ icon, label, value }: DetailRowProps) => (
+  <View style={styles.detailRow}>
+    <Ionicons name={icon} size={18} color="#94A3B8" style={{ width: 24 }} />
+    <View style={styles.detailContent} flex={1}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  </View>
+);
+
 export default function AttendanceHistoryScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -161,88 +244,8 @@ export default function AttendanceHistoryScreen() {
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: number;
-  color: string;
-  icon: string;
 }
-
-const StatCard = ({ label, value, color, icon }: StatCardProps) => (
-  <Card style={styles.statCard} variant="outlined">
-    <View style={styles.statContent}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.statText}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </View>
-  </Card>
-);
-
-interface AttendanceRecordCardProps {
-  record: any;
 }
-
-const AttendanceRecordCard = ({ record }: AttendanceRecordCardProps) => {
-  const session = record.session;
-  const subject = session?.subjectClassMapping?.subject?.name;
-  const className = session?.subjectClassMapping?.class?.name;
-  const teacher = session?.subjectClassMapping?.teacher?.user?.fullName;
-  const date = formatDate(record.markedAt);
-  const time = new Date(record.markedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-  return (
-    <Card style={styles.recordCard}>
-      <View style={styles.recordHeader}>
-        <View style={styles.recordSubject}>
-          <Text style={styles.recordSubjectName}>{subject}</Text>
-          <Text style={styles.recordClass}>{className}</Text>
-        </View>
-        <Badge
-          variant={record.status === 'PRESENT' ? 'success' : record.status === 'LATE' ? 'warning' : 'danger'}
-          dot
-          size="md"
-        >
-          {record.status}
-        </Badge>
-      </View>
-
-      <View style={styles.recordDetails}>
-        <DetailRow icon="person" label="Teacher" value={teacher} />
-        <DetailRow icon="time" label="Date & Time" value={`${date} at ${time}`} />
-        <DetailRow icon={record.method === 'QR_FACE' ? 'scan-face' : record.method === 'MANUAL' ? 'create' : 'qr-code'} 
-          label="Method" 
-          value={record.method === 'QR_FACE' ? 'QR + Face' : record.method === 'MANUAL' ? 'Manual by Teacher' : 'QR Only'} 
-        />
-        {record.faceVerified && (
-          <DetailRow icon="checkmark-shield" label="Face Verified" value={`${Math.round((record.faceMatchScore || 1) * 100)}% match`} />
-        )}
-        {record.latitude && record.longitude && (
-          <DetailRow icon="location" label="Location" value={`${record.latitude.toFixed(4)}, ${record.longitude.toFixed(4)}`} />
-        )}
-      </View>
-    </Card>
-  );
-};
-
-interface DetailRowProps {
-  icon: string;
-  label: string;
-  value: string;
-}
-
-const DetailRow = ({ icon, label, value }: DetailRowProps) => (
-  <View style={styles.detailRow}>
-    <Ionicons name={icon} size={18} color="#94A3B8" style={{ width: 24 }} />
-    <View style={styles.detailContent} flex={1}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },

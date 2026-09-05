@@ -10,6 +10,18 @@ import { Button } from '@/components/Button';
 import { Card, Loading, Badge } from '@/components';
 import { parseQRCodeData } from '@/utils/qr';
 
+interface DetailRowProps {
+  label: string;
+  value: string;
+}
+
+const DetailRow = ({ label, value }: DetailRowProps) => (
+  <View style={styles.detailRow}>
+    <Text style={styles.detailLabel}>{label}</Text>
+    <Text style={styles.detailValue}>{value}</Text>
+  </View>
+);
+
 export default function ScanQRScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
@@ -207,17 +219,8 @@ export default function ScanQRScreen() {
   );
 }
 
-interface DetailRowProps {
-  label: string;
-  value: string;
 }
-
-const DetailRow = ({ label, value }: DetailRowProps) => (
-  <View style={styles.detailRow}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    <Text style={styles.detailValue}>{value}</Text>
-  </View>
-);
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000000' },

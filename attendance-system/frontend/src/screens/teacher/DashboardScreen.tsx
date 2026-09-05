@@ -8,6 +8,79 @@ import { api } from '@/services/api';
 import { Card, Badge, EmptyState, Loading } from '@/components';
 import { formatDate, formatRelativeTime, getSessionStatusColor } from '@/utils/format';
 
+interface StatCardProps {
+  label: string;
+  value: number;
+  color: string;
+  icon: string;
+}
+
+const StatCard = ({ label, value, color, icon }: StatCardProps) => (
+  <Card style={styles.statCard} variant="outlined">
+    <View style={styles.statContent}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.statText}>
+        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  </Card>
+);
+
+interface OngoingSessionCardProps {
+  session: any;
+  onPress: () => void;
+}
+
+const OngoingSessionCard = ({ session, onPress }: OngoingSessionCardProps) => (
+  <TouchableOpacity style={styles.ongoingCard} onPress={onPress} activeOpacity={0.8}>
+    <View style={styles.ongoingCardHeader}>
+      <View style={styles.ongoingStatus}>
+        <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+        <Text style={styles.ongoingStatusText}>LIVE</Text>
+      </View>
+      <TouchableOpacity onPress={(e) => { e.stopPropagation(); router.push(`/teacher/qr-display?sessionId=${session.id}`); }} style={styles.qrButton}>
+        <Ionicons name="qr-code" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+    </View>
+    <View style={styles.sessionInfo}>
+      <Text style={styles.sessionSubject}>{session.subjectClassMapping?.subject?.name}</Text>
+      <Text style={styles.sessionClass}>{session.subjectClassMapping?.class?.name}</Text>
+    </View>
+    <View style={styles.sessionTime}>
+      <Text style={styles.sessionTimeText}>{new Date(session.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} - {new Date(session.scheduledEnd).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
+interface SessionCardProps {
+  session: any;
+  onPress: () => void;
+}
+
+const SessionCard = ({ session, onPress }: SessionCardProps) => (
+  <TouchableOpacity style={styles.sessionCard} onPress={onPress} activeOpacity={0.8}>
+    <View style={styles.sessionCardHeader}>
+      <Badge
+        variant={session.status === 'SCHEDULED' ? 'info' : session.status === 'COMPLETED' ? 'default' : 'success'}
+        size="sm"
+      >
+        {session.status}
+      </Badge>
+      <Text style={styles.sessionDate}>{formatDate(session.scheduledStart)}</Text>
+    </View>
+    <View style={styles.sessionInfo}>
+      <Text style={styles.sessionSubject}>{session.subjectClassMapping?.subject?.name}</Text>
+      <Text style={styles.sessionClass}>{session.subjectClassMapping?.class?.name}</Text>
+    </View>
+    <View style={styles.sessionTime}>
+      <Text style={styles.sessionTimeText}>{new Date(session.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
+    </View>
+  </TouchableOpacity>
+);
+
 export default function TeacherDashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -151,79 +224,6 @@ export default function TeacherDashboardScreen() {
     </View>
   );
 }
-
-interface StatCardProps {
-  label: string;
-  value: number;
-  color: string;
-  icon: string;
-}
-
-const StatCard = ({ label, value, color, icon }: StatCardProps) => (
-  <Card style={styles.statCard} variant="outlined">
-    <View style={styles.statContent}>
-      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.statText}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-    </View>
-  </Card>
-);
-
-interface OngoingSessionCardProps {
-  session: any;
-  onPress: () => void;
-}
-
-const OngoingSessionCard = ({ session, onPress }: OngoingSessionCardProps) => (
-  <TouchableOpacity style={styles.ongoingCard} onPress={onPress} activeOpacity={0.8}>
-    <View style={styles.ongoingCardHeader}>
-      <View style={styles.ongoingStatus}>
-        <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
-        <Text style={styles.ongoingStatusText}>LIVE</Text>
-      </View>
-      <TouchableOpacity onPress={(e) => { e.stopPropagation(); router.push(`/teacher/qr-display?sessionId=${session.id}`); }} style={styles.qrButton}>
-        <Ionicons name="qr-code" size={20} color="#FFFFFF" />
-      </TouchableOpacity>
-    </View>
-    <View style={styles.sessionInfo}>
-      <Text style={styles.sessionSubject}>{session.subjectClassMapping?.subject?.name}</Text>
-      <Text style={styles.sessionClass}>{session.subjectClassMapping?.class?.name}</Text>
-    </View>
-    <View style={styles.sessionTime}>
-      <Text style={styles.sessionTimeText}>{new Date(session.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} - {new Date(session.scheduledEnd).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-    </View>
-  </TouchableOpacity>
-);
-
-interface SessionCardProps {
-  session: any;
-  onPress: () => void;
-}
-
-const SessionCard = ({ session, onPress }: SessionCardProps) => (
-  <TouchableOpacity style={styles.sessionCard} onPress={onPress} activeOpacity={0.8}>
-    <View style={styles.sessionCardHeader}>
-      <Badge
-        variant={session.status === 'SCHEDULED' ? 'info' : session.status === 'COMPLETED' ? 'default' : 'success'}
-        size="sm"
-      >
-        {session.status}
-      </Badge>
-      <Text style={styles.sessionDate}>{formatDate(session.scheduledStart)}</Text>
-    </View>
-    <View style={styles.sessionInfo}>
-      <Text style={styles.sessionSubject}>{session.subjectClassMapping?.subject?.name}</Text>
-      <Text style={styles.sessionClass}>{session.subjectClassMapping?.class?.name}</Text>
-    </View>
-    <View style={styles.sessionTime}>
-      <Text style={styles.sessionTimeText}>{new Date(session.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</Text>
-    </View>
-  </TouchableOpacity>
-);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
