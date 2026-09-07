@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { storage } from '@/utils/storage';
 import { User, AuthTokens } from '@/types';
 
 interface AuthContextType {
@@ -43,8 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadStoredAuth = async () => {
     try {
       const [storedTokens, storedUser] = await Promise.all([
-        SecureStore.getItemAsync('auth_tokens'),
-        SecureStore.getItemAsync('auth_user'),
+        storage.getItemAsync('auth_tokens'),
+        storage.getItemAsync('auth_user'),
       ]);
       
       if (storedTokens && storedUser) {
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         const newTokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
-        await SecureStore.setItemAsync('auth_tokens', JSON.stringify(newTokens));
+        await storage.setItemAsync('auth_tokens', JSON.stringify(newTokens));
         setTokens(newTokens);
         return true;
       }
@@ -104,8 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clearAuth = async () => {
     await Promise.all([
-      SecureStore.deleteItemAsync('auth_tokens'),
-      SecureStore.deleteItemAsync('auth_user'),
+      storage.deleteItemAsync('auth_tokens'),
+      storage.deleteItemAsync('auth_user'),
     ]);
     setTokens(null);
     setUser(null);
@@ -126,8 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const newTokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
     await Promise.all([
-      SecureStore.setItemAsync('auth_tokens', JSON.stringify(newTokens)),
-      SecureStore.setItemAsync('auth_user', JSON.stringify(data.user)),
+      storage.setItemAsync('auth_tokens', JSON.stringify(newTokens)),
+      storage.setItemAsync('auth_user', JSON.stringify(data.user)),
     ]);
     
     setTokens(newTokens);
@@ -149,8 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const newTokens = { accessToken: result.accessToken, refreshToken: result.refreshToken };
     await Promise.all([
-      SecureStore.setItemAsync('auth_tokens', JSON.stringify(newTokens)),
-      SecureStore.setItemAsync('auth_user', JSON.stringify(result.user)),
+      storage.setItemAsync('auth_tokens', JSON.stringify(newTokens)),
+      storage.setItemAsync('auth_user', JSON.stringify(result.user)),
     ]);
     
     setTokens(newTokens);

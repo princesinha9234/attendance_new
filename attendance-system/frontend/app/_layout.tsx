@@ -1,11 +1,15 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { Providers } from '@/context/Providers';
 import { SplashScreen } from 'expo-splash-screen';
-
-SplashScreen.preventAutoHideAsync();
+import { useEffect } from 'react';
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      SplashScreen.preventAutoHideAsync();
+    }
+  }, []);
   return (
     <Providers>
       <Stack

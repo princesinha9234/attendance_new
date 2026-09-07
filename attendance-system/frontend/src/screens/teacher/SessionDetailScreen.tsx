@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
 import { Button as AppButton } from '@/components/Button';
 import { Card, Badge, Loading, EmptyState, Modal } from '@/components';
+import { QRCode } from '@/components/QRCode';
 import { formatDate, formatTime, getSessionStatusColor } from '@/utils/format';
 
 const Button = AppButton as any;
@@ -75,8 +76,6 @@ const styles = StyleSheet.create({
   qrActiveText: { fontSize: 14, color: '#64748B', textAlign: 'center' },
   qrExpires: { fontSize: 12, color: '#94A3B8', marginTop: 6 },
   qrModalContent: { alignItems: 'center', gap: 16 },
-  qrImageContainer: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 16 },
-  qrImage: { width: 250, height: 250 },
   qrInstruction: { fontSize: 14, color: '#64748B', textAlign: 'center', marginTop: 12 },
   qrToken: { fontSize: 12, color: '#94A3B8', fontFamily: 'monospace', marginTop: 4 },
   confirmModalContent: { alignItems: 'center', gap: 16 },
@@ -158,7 +157,6 @@ export default function SessionDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [showingQR, setShowingQR] = useState(false);
   const [qrData, setQrData] = useState<string>('');
-  const [qrImage, setQrImage] = useState<string>('');
   const [generatingQR, setGeneratingQR] = useState(false);
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -200,7 +198,6 @@ export default function SessionDetailScreen() {
       if (response.error) throw new Error(response.error);
       
       setQrData(response.data?.token || '');
-      setQrImage(response.data?.qrCode || '');
       setShowingQR(true);
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : 'Failed to generate QR');
@@ -384,10 +381,13 @@ export default function SessionDetailScreen() {
 
       <Modal visible={showingQR} onClose={() => setShowingQR(false)} size="lg" title="QR Code for Attendance">
         <View style={styles.qrModalContent}>
-          {qrImage ? (
-            <View style={styles.qrImageContainer}>
-              <Image source={{ uri: qrImage }} style={styles.qrImage} />
-            </View>
+          {qrData ? (
+            <QRCode
+              value={qrData}
+              size={250}
+              color="#000000"
+              backgroundColor="#FFFFFF"
+            />
           ) : (
             <Loading text="Generating QR..." />
           )}

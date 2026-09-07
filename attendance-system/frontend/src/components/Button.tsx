@@ -1,8 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, TouchableOpacityProps, Text, View, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-interface ButtonProps extends React.TouchableOpacityProps {
+interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
@@ -68,10 +68,10 @@ export const Button = React.forwardRef<TouchableOpacity, ButtonProps>(
       color: variant === 'ghost' || variant === 'outline' ? color.text : color.text,
     };
 
-    const gradientColors = variant === 'outline' || variant === 'ghost' ? undefined : color.bg;
+    const gradientColors = variant === 'outline' || variant === 'ghost' ? undefined : color.bg as string[];
 
     const renderButton = () => (
-      <View style={[containerStyle, style]} {...props}>
+      <View style={[containerStyle, style]}>
         {loading ? (
           <ActivityIndicator size="small" color={variant === 'outline' || variant === 'ghost' ? color.text : '#FFFFFF'} />
         ) : (

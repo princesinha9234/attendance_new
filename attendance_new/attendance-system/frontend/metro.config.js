@@ -12,9 +12,4 @@ config.resolver.extraNodeModules = {
   'react-native-qrcode-svg': path.resolve(__dirname, 'src/utils/emptyModule.js'),
 };
 
-config.resolver.blockList = [
-  /jimp-compact/,
-  /node_modules[\\\/]jimp-compact/,
-];
-
 module.exports = config;

@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
-  Image,
   ScrollView,
 } from 'react-native';
 
@@ -24,6 +23,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { api } from '@/services/api';
 import { Card, Loading, Badge } from '@/components';
+import { QRCode } from '@/components/QRCode';
 import {
   formatDate,
   formatTime,
@@ -572,15 +572,12 @@ export default function QRDisplayScreen() {
                 <View
                   style={styles.qrFrame}
                 >
-                  {qrImage ? (
-                    <Image
-                      source={{
-                        uri: qrImage,
-                      }}
-                      style={
-                        styles.qrImage
-                      }
-                      resizeMode="contain"
+                  {qrData ? (
+                    <QRCode
+                      value={qrData}
+                      size={250}
+                      color="#000000"
+                      backgroundColor="#FFFFFF"
                     />
                   ) : (
                     <View
@@ -1020,11 +1017,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
-  },
-
-  qrImage: {
-    width: 250,
-    height: 250,
   },
 
   qrPlaceholder: {
